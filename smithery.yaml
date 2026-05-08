@@ -1,0 +1,23 @@
+# Smithery configuration for terminal-history-mcp.
+# Reference: https://smithery.ai/docs/build/project-config
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties: {}
+    additionalProperties: false
+  commandFunction: |
+    (config) => ({
+      command: "terminal-history-mcp",
+      args: []
+    })
+  exampleConfig: {}
+
+build:
+  dockerfile: Dockerfile
+
+description: |
+  Search your shell history (zsh/bash/fish) from any MCP client. Local-only SQLite FTS5
+  with secret redaction (GitHub PATs, OpenAI/Slack/AWS keys, Bearer auth, env tokens, JWTs).
+  Optional shell hook captures cwd, exit code, and duration.
