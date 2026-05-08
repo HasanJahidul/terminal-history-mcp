@@ -2,6 +2,8 @@
 
 Search your shell history (zsh / bash / fish) from Claude Code, Cline, Cursor, Zed, or any MCP client. Local-only. SQLite FTS5. Secret-redacted before storage.
 
+![demo](demo.gif)
+
 ## What you can ask
 
 - *"When did I last ssh into the staging server?"*
