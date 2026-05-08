@@ -1,0 +1,14 @@
+node_modules
+dist
+*.log
+.DS_Store
+
+# Local Claude/AI-assistant context — not for public repo
+CLAUDE.md
+memory.json
+.claude/
+
+# Internal docs — not for public repo
+ROADMAP.md
+TEST_REPORT.md
+
