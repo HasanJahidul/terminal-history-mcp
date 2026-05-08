@@ -9,8 +9,11 @@
   "main": "dist/index.js",
   "files": [
     "dist",
+    "!dist/test",
+    "!dist/**/*.test.js",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsc",
