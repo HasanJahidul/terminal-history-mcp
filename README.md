@@ -1,5 +1,9 @@
 # terminal-history-mcp
 
+[![CI](https://github.com/HasanJahidul/terminal-history-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/HasanJahidul/terminal-history-mcp/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/terminal-history-mcp.svg)](https://www.npmjs.com/package/terminal-history-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Search your shell history (zsh / bash / fish) from Claude Code, Cline, Cursor, Zed, or any MCP client. Local-only. SQLite FTS5. Secret-redacted before storage.
 
 ![demo](demo.gif)
