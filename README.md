@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.svg" alt="terminal-history-mcp logo" width="160" height="160">
+</p>
+
 # terminal-history-mcp
 
 [![MCPize](https://mcpize.com/badge/@HasanJahidul/terminal-history)](https://mcpize.com/mcp/terminal-history)
