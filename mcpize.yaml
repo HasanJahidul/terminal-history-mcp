@@ -1,0 +1,19 @@
+# MCPize Configuration
+# Docs: https://mcpize.com/docs/mcpize-yaml
+
+version: 1
+
+name: "Terminal History"
+slug: "terminal-history"
+
+runtime: container
+
+build:
+  dockerfile: "Dockerfile"
+
+start:
+  type: stdio
+  command: "node dist/index.js"
+
+bridge:
+  mode: stdio

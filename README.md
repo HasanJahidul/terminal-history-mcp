@@ -1,5 +1,6 @@
 # terminal-history-mcp
 
+[![MCPize](https://mcpize.com/badge/@HasanJahidul/terminal-history)](https://mcpize.com/mcp/terminal-history)
 [![CI](https://github.com/HasanJahidul/terminal-history-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/HasanJahidul/terminal-history-mcp/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/terminal-history-mcp.svg)](https://www.npmjs.com/package/terminal-history-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -45,6 +46,16 @@ Anywhere that takes a stdio MCP server config:
   }
 }
 ```
+
+## Connect via MCPize
+
+Use this MCP server instantly with no local installation:
+
+```bash
+npx -y mcpize connect @HasanJahidul/terminal-history --client claude
+```
+
+Or connect at: **https://mcpize.com/mcp/terminal-history**
 
 ## Capture cwd + exit code (recommended)
 
