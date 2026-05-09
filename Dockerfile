@@ -1,17 +1,28 @@
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache python3 make g++ sqlite
+
+WORKDIR /app
+
+COPY package.json package-lock.json tsconfig.json ./
+RUN npm ci
+
+COPY src ./src
+RUN npx tsc
+
+# --- runtime stage ---
 FROM node:20-alpine
 
-# better-sqlite3 needs build tools for native compile on alpine.
-RUN apk add --no-cache python3 make g++ sqlite
+RUN apk add --no-cache sqlite
 
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-COPY dist ./dist
+COPY --from=builder /app/dist ./dist
 COPY README.md LICENSE CHANGELOG.md ./
 
-# History DB lives in the user's home; persist via volume mount.
 VOLUME ["/root/.terminal-history-mcp"]
 
 ENTRYPOINT ["node", "dist/cli.js"]
