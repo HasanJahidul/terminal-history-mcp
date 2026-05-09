@@ -5,6 +5,7 @@
 # terminal-history-mcp
 
 [![MCPize](https://mcpize.com/badge/@HasanJahidul/terminal-history)](https://mcpize.com/mcp/terminal-history)
+[![mcp.so](https://img.shields.io/badge/listed%20on-mcp.so-1f6feb)](https://mcp.so/server/terminal-history-mcp/HasanJahidul)
 [![CI](https://github.com/HasanJahidul/terminal-history-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/HasanJahidul/terminal-history-mcp/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/terminal-history-mcp.svg)](https://www.npmjs.com/package/terminal-history-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
