@@ -13,7 +13,9 @@
     "!dist/**/*.test.js",
     "README.md",
     "LICENSE",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "logo.png",
+    "logo.svg"
   ],
   "scripts": {
     "build": "tsc",
