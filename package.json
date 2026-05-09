@@ -1,6 +1,6 @@
 {
   "name": "terminal-history-mcp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Search your shell history (zsh/bash/fish) via MCP. SQLite FTS5, local, private, secret-redacted.",
   "type": "module",
   "bin": {
