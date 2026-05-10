@@ -1,4 +1,24 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
-  "maintainers": ["hasanjahidul"]
+  "maintainers": [
+    "HasanJahidul"
+  ],
+  "name": "terminal-history-mcp",
+  "description": "MCP server for searching shell history (zsh/bash) via SQLite FTS5. Local-only, private. Secret redaction before insert.",
+  "homeUrl": "https://github.com/HasanJahidul/terminal-history-mcp",
+  "transport": [
+    "stdio"
+  ],
+  "keywords": [
+    "terminal",
+    "history",
+    "shell",
+    "zsh",
+    "bash",
+    "fish",
+    "fts5",
+    "sqlite",
+    "search",
+    "developer-tools"
+  ]
 }
