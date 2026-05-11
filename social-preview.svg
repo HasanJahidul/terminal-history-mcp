@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#161b22"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+
+  <!-- logo, left -->
+  <image xlink:href="logo.svg" x="72" y="120" width="400" height="400"/>
+
+  <!-- text block, right -->
+  <text x="520" y="228" font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="22" font-weight="700" letter-spacing="3" fill="#7d8590">MCP SERVER</text>
+  <text x="520" y="308" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="62" font-weight="800" fill="#e6edf3">terminal-history-mcp</text>
+  <text x="520" y="368" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="30" font-weight="600" fill="#adbac7">Search your shell history (zsh / bash / fish).</text>
+  <text x="520" y="408" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="30" font-weight="600" fill="#adbac7">Local. Private. Secrets redacted before storage.</text>
+
+  <!-- tool chips -->
+  <g font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="19" font-weight="600">
+    <rect x="520" y="450" width="180" height="38" rx="8" fill="#21262d" stroke="#30363d"/>
+    <text x="536" y="475" fill="#3fb950">search_history</text>
+    <rect x="714" y="450" width="192" height="38" rx="8" fill="#21262d" stroke="#30363d"/>
+    <text x="730" y="475" fill="#58a6ff">command_chains</text>
+    <rect x="920" y="450" width="196" height="38" rx="8" fill="#21262d" stroke="#30363d"/>
+    <text x="936" y="475" fill="#d29922">failed_commands</text>
+  </g>
+
+  <text x="520" y="536" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="22" font-weight="500" fill="#7d8590">npm i -g terminal-history-mcp  ·  MIT  ·  SQLite FTS5  ·  100% local</text>
+</svg>
