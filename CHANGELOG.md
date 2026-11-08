@@ -3,6 +3,17 @@
 All notable changes to this project will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Optional semantic search over an OpenAI-compatible endpoint (default: local Ollama at `http://localhost:11434/v1`, `nomic-embed-text`).
+- `search_history` `mode` input: `keyword` (default, unchanged output), `semantic`, `hybrid` (top 50 FTS5 + top 50 vector, Reciprocal Rank Fusion k=60). Hybrid falls back to keyword and reports `fallback_reason` when embeddings are unavailable.
+- `reindex_embeddings(limit=2000)` tool: embeds distinct command text in batches of 64 into a new `command_embeddings` table, keyed by content hash and model.
+- `ask_history(question, k=8)` tool: answers from retrieved history with `[id:N]` citations validated against the retrieved set; exact "No relevant history found." when nothing is relevant; context-only without a chat model.
+- Env vars `TERMINAL_HISTORY_LLM_BASE_URL`, `TERMINAL_HISTORY_EMBED_MODEL`, `TERMINAL_HISTORY_CHAT_MODEL`, `TERMINAL_HISTORY_LLM_API_KEY`, `TERMINAL_HISTORY_ALLOW_REMOTE_LLM`. Non-localhost endpoints are refused unless the last is `1`.
+- `npm run eval`: recall@5 / MRR@10 per mode on a synthetic fixture, plus brute-force vector search latency at 10k and 100k vectors. See `docs/adr/0001-semantic-search.md`.
+- Unit tests for vectors, RRF, reindexing, the guardrail and ask_history; a hermetic JSON-RPC e2e suite (temp HOME, fake endpoint on 127.0.0.1).
+
 ## [0.2.0] - 2026-05-08
 
 ### Added
