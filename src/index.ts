@@ -16,6 +16,19 @@ import {
   commandChains,
   type SearchRow,
 } from "./search.js";
+import { readLlmConfig, embedTexts, chatComplete, ENV, type LlmConfig } from "./llm.js";
+import { reindexEmbeddings, DEFAULT_REINDEX_LIMIT, EMBED_BATCH_SIZE } from "./embeddings.js";
+import {
+  searchByMode,
+  askHistory,
+  SEARCH_MODES,
+  HYBRID_CANDIDATES,
+  RRF_K,
+  ASK_DEFAULT_K,
+  NO_RELEVANT_ANSWER,
+  type SemanticDeps,
+  type RankedRow,
+} from "./semantic-search.js";
 
 const db = openDb();
 
@@ -27,6 +40,20 @@ function fmt(rows: SearchRow[]): string {
     const cwd = r.cwd ? ` cwd=${r.cwd}` : "";
     return `[${r.shell} ${when}${exit}${cwd}] ${r.cmd}`;
   }).join("\n");
+}
+
+function withIds(rows: SearchRow[]): string {
+  if (!rows.length) return "(no results)";
+  return rows.map((r) => `[id:${r.id}] ${fmt([r])}`).join("\n");
+}
+
+// Read per call so env changes in tests apply; throws the privacy-guardrail error for
+// non-localhost endpoints without the opt-in.
+function semanticDepsFrom(cfg: LlmConfig): SemanticDeps {
+  return { model: cfg.embedModel, embed: (texts, purpose) => embedTexts(cfg, texts, purpose) };
+}
+function semanticDeps(): SemanticDeps {
+  return semanticDepsFrom(readLlmConfig());
 }
 
 const server = new Server(
@@ -56,6 +83,18 @@ const COMMAND_ROW = {
   },
 } as const;
 
+const RANKED_ROW = {
+  type: "object",
+  properties: {
+    id: { type: "number", description: "Entry id; ask_history cites entries by this id." },
+    ...COMMAND_ROW.properties,
+    similarity: { type: "number", description: "Cosine similarity to the query (semantic/hybrid)." },
+    rrf_score: { type: "number", description: `Reciprocal Rank Fusion score, sum of 1/(${RRF_K}+rank) (hybrid).` },
+    keyword_rank: { type: ["number", "null"], description: "1-based rank in the keyword list, null if absent (hybrid)." },
+    semantic_rank: { type: ["number", "null"], description: "1-based rank in the vector list, null if absent (hybrid)." },
+  },
+} as const;
+
 const TOOLS = [
   {
     name: "reindex",
@@ -81,20 +120,37 @@ const TOOLS = [
     description:
       "Read-only. Full-text search (SQLite FTS5, stemmed, Unicode-aware) over all indexed shell commands. " +
       "Supports keyword and prefix queries — e.g. `docker build`, `git reb*`. Returns the most recent matches first, each with timestamp, shell, cwd, and exit code when available. " +
-      "Local index only; nothing is sent anywhere. If a query returns nothing you may need `reindex` first.",
+      "Default `keyword` mode is local index only; nothing is sent anywhere. `semantic` and `hybrid` modes embed only the query through the configured OpenAI-compatible endpoint (localhost Ollama by default) and need `reindex_embeddings` to have run. " +
+      "If a query returns nothing you may need `reindex` first.",
     annotations: { title: "Search shell history", ...READ_ONLY },
     inputSchema: {
       type: "object",
       properties: {
         query: { type: "string", description: "FTS5 query. Plain keywords are ANDed; append `*` for prefix match. E.g. `npm install`, `kubectl get po*`." },
         limit: { type: "number", description: "Maximum number of matching commands to return, newest first. Default 20.", default: 20 },
+        mode: {
+          type: "string",
+          enum: [...SEARCH_MODES],
+          default: "keyword",
+          description:
+            "`keyword` (default): FTS5 bm25, exactly the previous behaviour. " +
+            "`semantic`: embedding similarity, finds paraphrases (\"free up docker disk space\" -> `docker system prune`); returns an error if embeddings are unavailable. " +
+            `\`hybrid\`: fuses the top ${HYBRID_CANDIDATES} keyword and top ${HYBRID_CANDIDATES} semantic results with Reciprocal Rank Fusion (k=${RRF_K}), one row per distinct command; falls back to keyword results, and says so, if embeddings are unavailable.`,
+        },
       },
       required: ["query"],
       additionalProperties: false,
     },
     outputSchema: {
       type: "object",
-      properties: { count: { type: "number" }, results: { type: "array", items: COMMAND_ROW } },
+      properties: {
+        count: { type: "number" },
+        results: { type: "array", items: RANKED_ROW },
+        mode: { type: "string", enum: [...SEARCH_MODES], description: "Mode actually used. Omitted for keyword requests, whose output is unchanged." },
+        requested_mode: { type: "string", description: "Present when hybrid fell back to keyword." },
+        fallback_reason: { type: "string", description: "Why hybrid fell back to keyword (endpoint unreachable, empty index, guardrail)." },
+        keyword_error: { type: "string", description: "Hybrid only: the keyword query failed to parse, so results come from the vector list alone." },
+      },
     },
   },
   {
@@ -160,6 +216,68 @@ const TOOLS = [
       },
     },
   },
+  {
+    name: "reindex_embeddings",
+    description:
+      "Builds the vector index behind `search_history` semantic/hybrid modes and `ask_history`. " +
+      `Embeds distinct indexed command texts (identical commands share one vector) that have no vector yet for the configured model, newest first, in batches of ${EMBED_BATCH_SIZE}, ` +
+      `via the OpenAI-compatible endpoint in ${ENV.baseUrl} (default Ollama at http://localhost:11434/v1, model nomic-embed-text from ${ENV.embedModel}). ` +
+      `Non-localhost endpoints are refused unless ${ENV.allowRemote}=1. Sends only already-redacted text read from the local index. ` +
+      "Changing the embedding model re-embeds everything for the new model. Run `reindex` first, then call until `remaining` is 0. " +
+      "Returns embedded / skipped / failed / remaining counts.",
+    annotations: { title: "Build semantic search index", readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        limit: { type: "number", description: `Maximum number of distinct command texts to embed in this call. Default ${DEFAULT_REINDEX_LIMIT}.`, default: DEFAULT_REINDEX_LIMIT },
+      },
+      additionalProperties: false,
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        model: { type: "string", description: "Embedding model the vectors were built with." },
+        embedded: { type: "number", description: "Vectors written this call." },
+        skipped: { type: "number", description: "Distinct texts already embedded for this model (or blank)." },
+        failed: { type: "number", description: "Texts the endpoint rejected or failed on this call." },
+        remaining: { type: "number", description: "Distinct texts still without a vector for this model." },
+        error: { type: "string", description: "First error seen, if any." },
+      },
+    },
+  },
+  {
+    name: "ask_history",
+    description:
+      "Read-only. Answers a natural-language question about your shell history, with citations (retrieval-augmented generation). " +
+      `Retrieves the top \`k\` entries with hybrid search, then, if ${ENV.chatModel} is set, asks that chat model to answer only from those entries and cite them as [id:N]. ` +
+      "Retrieved commands are passed as delimited untrusted data, never as instructions. " +
+      `Replies exactly "${NO_RELEVANT_ANSWER}" when nothing retrieved is relevant. Without a chat model it returns the retrieved context only. ` +
+      "Cited ids are checked against the retrieved set; any others are listed in `invalid_citation_ids`.",
+    annotations: { title: "Ask your shell history", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    inputSchema: {
+      type: "object",
+      properties: {
+        question: { type: "string", description: "Natural-language question, e.g. \"how did I free up docker disk space?\"" },
+        k: { type: "number", description: `Number of entries to retrieve as context. Default ${ASK_DEFAULT_K}.`, default: ASK_DEFAULT_K },
+      },
+      required: ["question"],
+      additionalProperties: false,
+    },
+    outputSchema: {
+      type: "object",
+      properties: {
+        answer: { type: ["string", "null"], description: "Model answer with [id:N] citations; null when no chat model is configured." },
+        cited_ids: { type: "array", items: { type: "number" }, description: "Cited ids that exist in the retrieved set." },
+        cited_entries: { type: "array", items: RANKED_ROW },
+        invalid_citation_ids: { type: "array", items: { type: "number" }, description: "Ids the model cited that were not retrieved." },
+        retrieved: { type: "array", items: RANKED_ROW, description: "Context given to the model." },
+        retrieval_mode: { type: "string", enum: [...SEARCH_MODES], description: "`hybrid`, or `keyword` if it fell back." },
+        fallback_reason: { type: "string" },
+        keyword_error: { type: "string" },
+        note: { type: "string" },
+      },
+    },
+  },
 ];
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }));
@@ -180,9 +298,55 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
       };
     }
     if (name === "search_history") {
-      const { query, limit } = z.object({ query: z.string(), limit: z.number().optional() }).parse(args);
-      const rows = searchHistory(db, query, limit ?? 20);
-      return { content: [{ type: "text", text: fmt(rows) }], structuredContent: { count: rows.length, results: rows } };
+      const { query, limit, mode } = z.object({
+        query: z.string(), limit: z.number().optional(), mode: z.enum(SEARCH_MODES).optional(),
+      }).parse(args);
+      if (mode === undefined || mode === "keyword") {
+        const rows = searchHistory(db, query, limit ?? 20);
+        return { content: [{ type: "text", text: fmt(rows) }], structuredContent: { count: rows.length, results: rows } };
+      }
+      const r = await searchByMode(db, query, mode, limit ?? 20, semanticDeps);
+      const fellBack = r.mode !== mode;
+      const notes = [
+        fellBack ? `[note: ${mode} search fell back to keyword: ${r.fallback_reason}]` : null,
+        r.keyword_error ? `[note: keyword half skipped: ${r.keyword_error}]` : null,
+      ].filter((n): n is string => n !== null);
+      return {
+        content: [{ type: "text", text: [...notes, fmt(r.results)].join("\n") }],
+        structuredContent: {
+          count: r.results.length,
+          results: r.results,
+          mode: r.mode,
+          ...(fellBack ? { requested_mode: mode, fallback_reason: r.fallback_reason } : {}),
+          ...(r.keyword_error ? { keyword_error: r.keyword_error } : {}),
+        },
+      };
+    }
+    if (name === "reindex_embeddings") {
+      const { limit } = z.object({ limit: z.number().int().positive().optional() }).parse(args);
+      const cfg = readLlmConfig();
+      const r = await reindexEmbeddings(db, semanticDepsFrom(cfg).embed, cfg.embedModel, limit ?? DEFAULT_REINDEX_LIMIT);
+      const text = `model=${r.model} embedded=${r.embedded} skipped=${r.skipped} failed=${r.failed} remaining=${r.remaining}` +
+        (r.error ? `\nerror: ${r.error}` : "");
+      return {
+        content: [{ type: "text", text }],
+        structuredContent: r,
+        ...(r.error && r.embedded === 0 ? { isError: true } : {}),
+      };
+    }
+    if (name === "ask_history") {
+      const { question, k } = z.object({ question: z.string().min(1), k: z.number().int().positive().optional() }).parse(args);
+      const cfg = readLlmConfig();
+      const r = await askHistory(db, question, k ?? ASK_DEFAULT_K, {
+        getSemantic: () => semanticDepsFrom(cfg),
+        chat: cfg.chatModel ? (messages) => chatComplete(cfg, messages) : null,
+      });
+      const sources: RankedRow[] = r.answer === null ? r.retrieved : r.cited_entries;
+      const head = r.answer ?? `(${r.note})`;
+      const notes = [r.fallback_reason ? `[note: retrieval fell back to keyword: ${r.fallback_reason}]` : null]
+        .filter((n): n is string => n !== null);
+      const text = [...notes, head, "", r.answer === null ? "Retrieved context:" : "Sources:", withIds(sources)].join("\n");
+      return { content: [{ type: "text", text }], structuredContent: r };
     }
     if (name === "recent_in_dir") {
       const { cwd, limit } = z.object({ cwd: z.string(), limit: z.number().optional() }).parse(args);
