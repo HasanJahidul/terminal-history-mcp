@@ -3,7 +3,7 @@
 All notable changes to this project will be documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.0] - 2026-11-08
 
 ### Added
 - Optional semantic search over an OpenAI-compatible endpoint (default: local Ollama at `http://localhost:11434/v1`, `nomic-embed-text`).
@@ -30,4 +30,5 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and thi
 - Default zsh/bash history files do NOT store cwd or exit code. Run `terminal-history-mcp install-hook <shell>` to enable `recent_in_dir` and `failed_commands` for newly-run commands.
 - Storage is local SQLite at `~/.terminal-history-mcp/history.db`. Nothing is uploaded.
 
+[0.3.0]: https://github.com/HasanJahidul/terminal-history-mcp/releases/tag/v0.3.0
 [0.2.0]: https://github.com/HasanJahidul/terminal-history-mcp/releases/tag/v0.2.0

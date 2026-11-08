@@ -45,7 +45,7 @@ async function runHook(args: string[]) {
   }
 }
 
-const HELP = `terminal-history-mcp v0.2.0
+const HELP = `terminal-history-mcp v0.3.0
 
 Usage:
   terminal-history-mcp                          Run MCP server (stdio)
@@ -66,7 +66,7 @@ async function main() {
 
   if (!cmd) return runServer();
   if (cmd === "--help" || cmd === "-h") { process.stdout.write(HELP); return; }
-  if (cmd === "--version" || cmd === "-v") { process.stdout.write("0.2.0\n"); return; }
+  if (cmd === "--version" || cmd === "-v") { process.stdout.write("0.3.0\n"); return; }
   if (cmd === "index") return runIndex();
   if (cmd === "install-hook" || cmd === "uninstall-hook" || cmd === "print-hook") return runHook(args);
 
