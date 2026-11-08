@@ -2,6 +2,7 @@ import Database from "better-sqlite3";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
+import { ensureEmbeddingsSchema } from "./embeddings.js";
 
 const DATA_DIR = join(homedir(), ".terminal-history-mcp");
 if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
@@ -39,5 +40,6 @@ export function openDb(): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_cwd ON commands(cwd);
     CREATE INDEX IF NOT EXISTS idx_exit ON commands(exit_code);
   `);
+  ensureEmbeddingsSchema(db);
   return db;
 }
